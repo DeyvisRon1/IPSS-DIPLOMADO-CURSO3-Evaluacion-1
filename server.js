@@ -61,15 +61,28 @@ const PORT = 3000
 //
 // A partir de aquí, es tuyo. 🚀
 
-// TODO: levanta el servidor.
-//
-app.listen(PORT, () => {
-  console.log(`⚽ API del Mundial escuchando en http://localhost:${PORT}`)
-})
-
 
 app.get('/api/selecciones', (req, res) => {
-    res.status(200).json(selecciones)
+    let resultado = selecciones
+   const { continente, campeon } = req.query
+
+    if (continente) {
+        const continenteEncontrado = continentes.find(
+            (c) => c.nombre.toLowerCase() === continente.toLowerCase()
+        )
+        if (!continenteEncontrado) {
+            return res.status(404).json({ error: `No existe el continente "${continente}"` })
+        }
+
+        resultado = resultado.filter((s) => s.continenteId === continenteEncontrado.id)
+    }
+
+        if (campeon === 'true') {
+        resultado = resultado.filter((s) => s.copas.length > 0)
+    }
+
+
+    res.status(200).json(resultado)
 })
 
 app.get('/api/selecciones/:id', (req, res) => {
@@ -82,4 +95,31 @@ app.get('/api/selecciones/:id', (req, res) => {
     }
 
     res.status(200).json(seleccion)
+})
+
+app.get('/api/copas', (req, res) => {
+    const todasLasCopas = selecciones.flatMap((s) => s.copas)
+    res.status(200).json(todasLasCopas)
+})
+
+app.get('/api/copas/:seleccion', (req, res) => {
+    const nombreBuscado = req.params.seleccion
+
+    const seleccionEncontrada = selecciones.find(
+        (s) => s.nombre.toLowerCase() === nombreBuscado.toLowerCase()
+    )
+
+    if (!seleccionEncontrada) {
+        return res.status(404).json({ error: `No existe la selección "${nombreBuscado}"` })
+    }
+
+    res.status(200).json(seleccionEncontrada.copas)
+})
+
+// A partir de aquí, es tuyo. 🚀
+
+// TODO: levanta el servidor.
+//
+app.listen(PORT, () => {
+  console.log(`⚽ API del Mundial escuchando en http://localhost:${PORT}`)
 })
