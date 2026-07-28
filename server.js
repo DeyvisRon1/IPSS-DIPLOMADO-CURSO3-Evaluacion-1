@@ -116,6 +116,29 @@ app.get('/api/copas/:seleccion', (req, res) => {
     res.status(200).json(seleccionEncontrada.copas)
 })
 
+app.get('/api/estadisticas', (req, res) => {
+    const totalSelecciones = selecciones.length
+
+    const totalCopas = selecciones.reduce((acc, s) => acc + s.copas.length, 0)
+
+    const seleccionesPorContinente = selecciones.reduce((acc, s) => {
+        const continente = continentes.find((c) => c.id === s.continenteId)
+        const nombre = continente.nombre
+        acc[nombre] = (acc[nombre] || 0) + 1
+        return acc
+    }, {})
+
+    const sumaRanking = selecciones.reduce((acc, s) => acc + s.fifaRanking, 0)
+    const rankingFifaPromedio = Number((sumaRanking / totalSelecciones).toFixed(2))
+
+    res.status(200).json({
+        totalSelecciones,
+        totalCopas,
+        seleccionesPorContinente,
+        rankingFifaPromedio,
+    })
+})
+
 function resolverSeleccion(id) {
     return selecciones.find((s) => s.id === id)
 }
