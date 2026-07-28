@@ -14,14 +14,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { continentes, grupos, selecciones, partidos } from './datos-mundial.js'
+import express from 'express'
+import cors from 'cors'
 
-// TODO: importa express y crea tu app.
-//
-//   import express from 'express'
-//   const app = express()
-//
-// Recuerda el middleware que hace falta para leer el cuerpo de los POST,
-// y configura CORS (lo vas a necesitar para el video).
+const app = express()
+
+app.use(cors())
+app.use(express.json())
+
+
 
 const PORT = 3000
 
@@ -62,6 +63,23 @@ const PORT = 3000
 
 // TODO: levanta el servidor.
 //
-//   app.listen(PORT, () => {
-//     console.log(`⚽ API del Mundial escuchando en http://localhost:${PORT}`)
-//   })
+app.listen(PORT, () => {
+  console.log(`⚽ API del Mundial escuchando en http://localhost:${PORT}`)
+})
+
+
+app.get('/api/selecciones', (req, res) => {
+    res.status(200).json(selecciones)
+})
+
+app.get('/api/selecciones/:id', (req, res) => {
+    const id = Number(req.params.id)
+
+    const seleccion = selecciones.find((s) => s.id === id)
+
+    if (!seleccion) {
+       return res.status(404).json({ error: `No existe la selección ${req.params.id}` })
+    }
+
+    res.status(200).json(seleccion)
+})
