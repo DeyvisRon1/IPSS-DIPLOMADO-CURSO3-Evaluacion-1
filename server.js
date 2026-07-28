@@ -116,6 +116,106 @@ app.get('/api/copas/:seleccion', (req, res) => {
     res.status(200).json(seleccionEncontrada.copas)
 })
 
+function resolverSeleccion(id) {
+    return selecciones.find((s) => s.id === id)
+}
+
+function validarCuerpoPartido(body) {
+    if (!body || !body.local || !body.visita) {
+        return 'Se requieren "local" y "visita"'
+    }
+    if (typeof body.local.seleccionId !== 'number' || typeof body.local.goles !== 'number') {
+        return '"local" debe tener seleccionId y goles numéricos'
+    }
+    if (typeof body.visita.seleccionId !== 'number' || typeof body.visita.goles !== 'number') {
+        return '"visita" debe tener seleccionId y goles numéricos'
+    }
+    if (!resolverSeleccion(body.local.seleccionId)) {
+        return `No existe la selección ${body.local.seleccionId}`
+    }
+    if (!resolverSeleccion(body.visita.seleccionId)) {
+        return `No existe la selección ${body.visita.seleccionId}`
+    }
+    return null
+}
+
+function formatearPartido(nombrePartido, partido) {
+    const local = resolverSeleccion(partido.local.seleccionId)
+    const visita = resolverSeleccion(partido.visita.seleccionId)
+
+    let ganador
+    if (partido.local.goles > partido.visita.goles) {
+        ganador = local.nombre
+    } else if (partido.visita.goles > partido.local.goles) {
+        ganador = visita.nombre
+    } else {
+        ganador = 'Empate'
+    }
+
+    return {
+        partido: nombrePartido,
+        local: { seleccion: local.nombre, goles: partido.local.goles },
+        visita: { seleccion: visita.nombre, goles: partido.visita.goles },
+        ganador,
+    }
+}
+
+app.post('/api/worldcup/2026/semifinals/:n', (req, res) => {
+    const n = Number(req.params.n)
+    if (!Number.isInteger(n) || n < 1 || n > 4) {
+        return res.status(400).json({ error: 'El número de semifinal debe ser entre 1 y 4' })
+    }
+
+    const errorValidacion = validarCuerpoPartido(req.body)
+    if (errorValidacion) {
+        return res.status(400).json({ error: errorValidacion })
+    }
+
+    const nuevoPartido = { numero: n, local: req.body.local, visita: req.body.visita }
+    const indice = partidos.semifinales.findIndex((p) => p.numero === n)
+    if (indice >= 0) {
+        partidos.semifinales[indice] = nuevoPartido
+    } else {
+        partidos.semifinales.push(nuevoPartido)
+    }
+
+    res.status(201).json(formatearPartido(`semifinal ${n}`, nuevoPartido))
+})
+
+app.get('/api/worldcup/2026/semifinals/:n', (req, res) => {
+    const n = Number(req.params.n)
+    const partido = partidos.semifinales.find((p) => p.numero === n)
+    if (!partido) {
+        return res.status(404).json({ error: `La semifinal ${n} aún no se ha jugado` })
+    }
+    res.status(200).json(formatearPartido(`semifinal ${n}`, partido))
+})
+
+app.get('/api/worldcup/2026/semifinals', (req, res) => {
+    const todas = [1, 2, 3, 4].map((n) => {
+        const partido = partidos.semifinales.find((p) => p.numero === n)
+        return partido ? formatearPartido(`semifinal ${n}`, partido) : { partido: `semifinal ${n}`, jugado: false }
+    })
+    res.status(200).json(todas)
+})
+
+app.post('/api/worldcup/2026/final', (req, res) => {
+    const errorValidacion = validarCuerpoPartido(req.body)
+    if (errorValidacion) {
+        return res.status(400).json({ error: errorValidacion })
+    }
+
+    partidos.final = { local: req.body.local, visita: req.body.visita }
+    res.status(201).json(formatearPartido('final', partidos.final))
+})
+
+app.get('/api/worldcup/2026/final', (req, res) => {
+    if (!partidos.final) {
+        return res.status(404).json({ error: 'La final aún no se ha jugado' })
+    }
+    res.status(200).json(formatearPartido('final', partidos.final))
+})
+
 // A partir de aquí, es tuyo. 🚀
 
 // TODO: levanta el servidor.
